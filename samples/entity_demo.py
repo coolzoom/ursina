@@ -1,13 +1,32 @@
 from ursina import *
-
+import csv
 app = Ursina()
 
 title = Text('''position, rotation, scale and parenting demo''', position=(-.85, .475), scale=1.5)
 
+    
 entity = Entity(model='cube', texture='white_cube')
 child = Entity(parent=entity, x=1, model='cube', scale=.5, texture='white_cube', color=color.azure)
 spacing = .04
 ui_parent = Entity(parent=camera.ui, scale=.8, x=-.85)
+
+with open('C:\\Users\\Administrator\\Desktop\\data.csv', mode='r') as csv_file:
+    csv_reader = csv.reader(csv_file, delimiter=',')
+    line_count = 0
+    for row in csv_reader:
+        if line_count == 0:
+            print(f'Column names are {", ".join(row)}')
+            line_count += 1
+        else:
+            #print(f'\t{row[0]} works in the {row[1]} department, and was born in {row[2]}.')
+            line_count += 1
+            e= Entity(parent=entity, model='sphere',color=color.orange, scale=1)
+            e.x = float(row[0])*1
+            e.y = float(row[1])*1
+            e.z = float(row[2])*100
+    print(f'Processed {line_count} lines.')
+
+
 
 for y, e in enumerate((entity, child)):
     for i, name in enumerate(('x', 'y', 'z')):
