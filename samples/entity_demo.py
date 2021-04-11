@@ -3,14 +3,18 @@ import csv
 app = Ursina()
 
 title = Text('''position, rotation, scale and parenting demo''', position=(-.85, .475), scale=1.5)
-
+window.title = 'My Game'                # The window title
+window.borderless = False               # Show a border
+window.fullscreen = False               # Do not go Fullscreen
+window.exit_button.visible = False      # Do not show the in-game red X that loses the window
+window.fps_counter.enabled = True       # Show the FPS (Frames per second) counte
     
 entity = Entity(model='cube', texture='white_cube')
 child = Entity(parent=entity, x=1, model='cube', scale=.5, texture='white_cube', color=color.azure)
 spacing = .04
 ui_parent = Entity(parent=camera.ui, scale=.8, x=-.85)
 
-with open('C:\\Users\\Administrator\\Desktop\\data.csv', mode='r') as csv_file:
+with open('C:\\Users\\Administrator\\Desktop\\data2.csv', mode='r') as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
     for row in csv_reader:
@@ -20,7 +24,7 @@ with open('C:\\Users\\Administrator\\Desktop\\data.csv', mode='r') as csv_file:
         else:
             #print(f'\t{row[0]} works in the {row[1]} department, and was born in {row[2]}.')
             line_count += 1
-            e= Entity(parent=entity, model='sphere',color=color.orange, scale=1)
+            e= Entity(parent=entity, model='sphere',color=color.rgb(100, 50, int(abs(float(row[2])*10000))), scale=1)
             e.x = float(row[0])*1
             e.y = float(row[1])*1
             e.z = float(row[2])*100
