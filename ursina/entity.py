@@ -101,7 +101,17 @@ class Entity(NodePath):
         for key, value in kwargs.items():
             setattr(self, key, value)
 
+        if self.enabled and hasattr(self, 'on_enable'):
+            if callable(self.on_enable):
+                self.on_enable()
+            elif isinstance(self.on_enable, Sequence):
+                self.on_enable.start()
 
+        elif not self.enabled and hasattr(self, 'on_disable'):
+            if callable(self.on_disable):
+                self.on_disable()
+            elif isinstance(self.on_disable, Sequence):
+                self.on_disable.start()
 
 
     def _list_to_vec(self, value):
@@ -131,33 +141,43 @@ class Entity(NodePath):
         self.enabled = False
 
 
+    @property
+    def enabled(self):
+        if not hasattr(self, '_enabled'):
+            return True
+        return self._enabled
+
+    @enabled.setter
+    def enabled(self, value):
+        if value and hasattr(self, 'on_enable') and not self.enabled:
+            if callable(self.on_enable):
+                self.on_enable()
+            elif isinstance(self.on_disable, Sequence):
+                self.on_enable.start()
+
+        elif value == False and hasattr(self, 'on_disable') and self.enabled:
+            if callable(self.on_disable):
+                self.on_disable()
+            elif isinstance(self.on_disable, Sequence):
+                self.on_disable.start()
+
+
+        if value == True:
+            if hasattr(self, 'is_singleton') and not self.is_singleton():
+                self.unstash()
+        else:
+            if hasattr(self, 'is_singleton') and not self.is_singleton():
+                self.stash()
+
+        self._enabled = value
+
+
     def __setattr__(self, name, value):
-
-        if name == 'enabled':
-            try:
-                # try calling on_enable() on classes inheriting from Entity
-                if value == True:
-                    self.on_enable()
-                else:
-                    self.on_disable()
-            except:
-                pass
-
-            if value == True:
-                if hasattr(self, 'is_singleton') and not self.is_singleton():
-                    self.unstash()
-            else:
-                if hasattr(self, 'is_singleton') and not self.is_singleton():
-                    self.stash()
-
         if name == 'eternal':
             for c in self.children:
                 c.eternal = value
 
-        if name == 'world_parent':
-            self.reparent_to(value)
-
-        if name == 'model':
+        elif name == 'model':
             if value is None:
                 if hasattr(self, 'model') and self.model:
                     self.model.removeNode()
@@ -198,7 +218,7 @@ class Entity(NodePath):
                         value.on_assign(assigned_to=self)
             return
 
-        if name == 'color' and value is not None:
+        elif name == 'color' and value is not None:
             if isinstance(value, str):
                 value = color.hex(value)
 
@@ -212,7 +232,7 @@ class Entity(NodePath):
                 object.__setattr__(self, name, value)
 
 
-        if name == 'collision' and hasattr(self, 'collider') and self.collider:
+        elif name == 'collision' and hasattr(self, 'collider') and self.collider:
             if value:
                 self.collider.node_path.unstash()
             else:
@@ -221,11 +241,11 @@ class Entity(NodePath):
             object.__setattr__(self, name, value)
             return
 
-        if name == 'render_queue':
+        elif name == 'render_queue':
             if self.model:
                 self.model.setBin('fixed', value)
 
-        if name == 'double_sided':
+        elif name == 'double_sided':
             self.setTwoSided(value)
 
 
@@ -253,6 +273,15 @@ class Entity(NodePath):
                 self.reparentTo(value)
             except:
                 print('invalid parent:', value)
+
+    @property
+    def world_parent(self):
+        return self.parent
+
+    @world_parent.setter
+    def world_parent(self, value):  # change the parent, but keep position, rotation and scale
+        self.reparent_to(value)
+
 
     @property
     def type(self): # get class name.
@@ -442,6 +471,16 @@ class Entity(NodePath):
         self.setZ(value)
 
     @property
+    def X(self):    # shortcut for int(entity.x)
+        return int(self.x)
+    @property
+    def Y(self):    # shortcut for int(entity.y)
+        return int(self.y)
+    @property
+    def Z(self):    # shortcut for int(entity.z)
+        return int(self.z)
+
+    @property
     def world_rotation(self):
         rotation = self.getHpr(base.render)
         return Vec3(rotation[1], rotation[0], rotation[2]) * Entity.rotation_directions
@@ -576,6 +615,21 @@ class Entity(NodePath):
         self.setScale(self.scale_x, self.scale_y, value)
 
     @property
+    def transform(self): # get/set position, rotation and scale
+        return (self.position, self.rotation, self.scale)
+    @transform.setter
+    def transform(self, value):
+        self.position, self.rotation, self.scale = value
+
+    @property
+    def world_transform(self): # get/set world_position, world_rotation and world_scale
+        return (self.world_position, self.world_rotation, self.world_scale)
+    @transform.setter
+    def world_transform(self, value):
+        self.world_position, self.world_rotation, self.world_scale = value
+
+
+    @property
     def forward(self): # get forward direction.
         return render.getRelativeVector(self, (0, 0, 1))
     @property
@@ -611,7 +665,7 @@ class Entity(NodePath):
     @shader.setter
     def shader(self, value):
         self._shader = value
-        
+
         if value is None:
             self.setShaderAuto()
             return
@@ -968,7 +1022,7 @@ class Entity(NodePath):
     def shake(self, duration=.2, magnitude=1, speed=.05, direction=(1,1)):
         import random
         s = Sequence()
-        original_position = self.position
+        original_position = self.world_position
         for i in range(int(duration / speed)):
             s.append(Func(self.set_position,
                 Vec3(
@@ -977,7 +1031,7 @@ class Entity(NodePath):
                     original_position[2],
                 )))
             s.append(Wait(speed))
-            s.append(Func(self.set_position, original_position))
+            s.append(Func(setattr, self, 'world_position', original_position))
 
         s.start()
         return s

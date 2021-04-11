@@ -8,7 +8,7 @@ setup(
     description='An easy to use game engine/framework for python.',
     long_description=long_desc,
     long_description_content_type="text/markdown",
-    version='3.4.0',
+    version='3.5.0',
     url='https://github.com/pokepetter/ursina',
     author='Petter Amland',
     author_email='pokepetter@gmail.com',
@@ -19,6 +19,7 @@ setup(
     install_requires=[
         'numpy',
         'panda3d',
+        'panda3d-gltf',
         'pillow',
         'screeninfo',
         'pyperclip',

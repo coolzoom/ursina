@@ -69,7 +69,6 @@ class Window(WindowProperties):
         if not application.development_mode:
             self.fullscreen = True
 
-        self.cursor = True
         self.color = color.dark_gray
         self.render_modes = ('default', 'wireframe', 'colliders', 'normals')
         self.render_mode = 'default'
@@ -110,10 +109,8 @@ class Window(WindowProperties):
         import time
 
         self.editor_ui = Entity(parent=camera.ui, eternal=True, enabled=bool(application.development_mode))
-        self.exit_button = Button(parent=self.editor_ui, eternal=True, ignore_paused=True, origin=(.5, .5),
+        self.exit_button = Button(parent=self.editor_ui, eternal=True, ignore_paused=True, origin=(.5, .5), enabled=self.borderless,
             position=self.top_right, z=-999, scale=(.05, .025), color=color.red.tint(-.2), text='x', on_click=application.quit)
-        self.exit_button.enabled = self.borderless
-
 
         def _exit_button_input(key):
             from ursina import held_keys, mouse
@@ -121,7 +118,8 @@ class Window(WindowProperties):
                 self.exit_button.on_click()
         self.exit_button.input = _exit_button_input
 
-        self.fps_counter = Text(parent=self.editor_ui, eternal=True, position=(.5*self.aspect_ratio, .47, -999), origin=(.8,.5), text='60', ignore=False, i=0)
+        self.fps_counter = Text(parent=self.editor_ui, eternal=True, origin=(.8,.5), text='60', ignore=False, i=0,
+            position=(.5*self.aspect_ratio, .47+(.02*(not self.exit_button.enabled)), -999))
 
         def _fps_counter_update():
             if self.fps_counter.i > 60:
@@ -299,11 +297,23 @@ class Window(WindowProperties):
             application.base.camNode.get_display_region(0).get_window().set_clear_color(value)
 
         if name == 'vsync':
-            if value == True:
-                loadPrcFileData('', 'sync-video True')
+            if not application.base:     # set vsync/framerate before window opened
+                if value == True or value == False:
+                    loadPrcFileData('', f'sync-video {value}')
+                elif isinstance(value, int):
+                    loadPrcFileData('', 'clock-mode limited')
+                    loadPrcFileData('', f'clock-frame-rate {value}')
             else:
-                loadPrcFileData('', 'sync-video False')
-                print('set vsync to false')
+                from panda3d.core import ClockObject                      # set vsync/framerate in runtime
+                if value == True:
+                    globalClock.setMode(ClockObject.MNormal)
+                elif value == False:
+                    print('error: disabling vsync during runtime is not yet implemented')
+
+                elif isinstance(value, int):
+                    globalClock.setMode(ClockObject.MLimited)
+                    globalClock.setFrameRate(30)
+
             object.__setattr__(self, name, value)
 
 
@@ -313,16 +323,18 @@ instance = Window()
 if __name__ == '__main__':
     from ursina import *
     # application.development_mode = False
+    window.vsync = 30
     app = Ursina()
+    # window.vsync = False # doesn't work
+    # window.vsync = True
 
     window.title = 'Title'
     window.borderless = False
     # window.fullscreen = False
-    window.fps_counter.enabled = False
+    # window.fps_counter.enabled = False
     # window.exit_button.visible = False
     # window.cog_button.enabled = False
     camera.orthographic = True
-
     camera.fov = 2
 
     Entity(model='cube', color=color.green, collider='box', texture='shore')
