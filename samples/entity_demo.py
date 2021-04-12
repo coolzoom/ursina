@@ -1,5 +1,7 @@
 from ursina import *
 import csv
+from ursina.shaders import lit_with_shadows_shader # you have to apply this shader to enties for them to recieve shadows.
+
 app = Ursina()
 
 title = Text('''position, rotation, scale and parenting demo''', position=(-.85, .475), scale=1.5)
@@ -14,6 +16,8 @@ child = Entity(parent=entity, x=1, model='cube', scale=.5, texture='white_cube',
 spacing = .04
 ui_parent = Entity(parent=camera.ui, scale=.8, x=-.85)
 
+PointLight(x=0, y=0, z=50, shadows=True)
+
 with open('C:\\Users\\Administrator\\Desktop\\data2.csv', mode='r') as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
@@ -24,7 +28,7 @@ with open('C:\\Users\\Administrator\\Desktop\\data2.csv', mode='r') as csv_file:
         else:
             #print(f'\t{row[0]} works in the {row[1]} department, and was born in {row[2]}.')
             line_count += 1
-            e= Entity(parent=entity, model='sphere',color=color.rgb(100, 50, int(abs(float(row[2])*10000))), scale=1)
+            e= Entity(parent=entity, model='sphere',color=color.rgb(100, 50, int(abs(float(row[2])*10000))), shader=lit_with_shadows_shader, scale=1)
             e.x = float(row[0])*1
             e.y = float(row[1])*1
             e.z = float(row[2])*100
